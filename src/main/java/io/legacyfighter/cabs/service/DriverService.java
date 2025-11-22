@@ -1,17 +1,5 @@
 package io.legacyfighter.cabs.service;
 
-import io.legacyfighter.cabs.dto.DriverDTO;
-import io.legacyfighter.cabs.entity.Driver;
-import io.legacyfighter.cabs.entity.DriverAttribute;
-import io.legacyfighter.cabs.entity.Transit;
-import io.legacyfighter.cabs.repository.DriverAttributeRepository;
-import io.legacyfighter.cabs.repository.DriverRepository;
-import io.legacyfighter.cabs.repository.TransitRepository;
-import org.apache.commons.codec.binary.Base64;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.time.Month;
 import java.time.YearMonth;
@@ -19,6 +7,20 @@ import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.codec.binary.Base64;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import io.legacyfighter.cabs.dto.DriverDTO;
+import io.legacyfighter.cabs.entity.Driver;
+import io.legacyfighter.cabs.entity.DriverAttribute;
+import io.legacyfighter.cabs.entity.DriverLicense;
+import io.legacyfighter.cabs.entity.Transit;
+import io.legacyfighter.cabs.repository.DriverAttributeRepository;
+import io.legacyfighter.cabs.repository.DriverRepository;
+import io.legacyfighter.cabs.repository.TransitRepository;
 
 @Service
 public class DriverService {
@@ -39,23 +41,21 @@ public class DriverService {
 
     public Driver createDriver(String license, String lastName, String firstName, Driver.Type type, Driver.Status status, String photo) {
         Driver driver = new Driver();
-        if (status.equals(Driver.Status.ACTIVE)) {
-            if (license == null || license.isEmpty() || !license.matches(DRIVER_LICENSE_REGEX)) {
-                throw new IllegalArgumentException("Illegal license no = " + license);
+
+        try {
+            driver.setDriverLicense(DriverLicense.withLicense(license));
+        } catch (IllegalArgumentException e) {
+            if (status.equals(Driver.Status.ACTIVE)) {
+                throw e;
             }
+            driver.setDriverLicense(DriverLicense.withoutValidation(license));
         }
-        driver.setDriverLicense(license);
+
         driver.setLastName(lastName);
         driver.setFirstName(firstName);
         driver.setStatus(status);
         driver.setType(type);
-        if (photo != null && !photo.isEmpty()) {
-            if (Base64.isBase64(photo)) {
-                driver.setPhoto(photo);
-            } else {
-                throw new IllegalArgumentException("Illegal photo in base64");
-            }
-        }
+        validatePhoto(photo, driver);
         return driverRepository.save(driver);
     }
 
@@ -65,19 +65,15 @@ public class DriverService {
         if (driver == null) {
             throw new IllegalArgumentException("Driver does not exists, id = " + driverId);
         }
-        if (newLicense == null || newLicense.isEmpty() || !newLicense.matches(DRIVER_LICENSE_REGEX)) {
-            throw new IllegalArgumentException("Illegal new license no = " + newLicense);
-        }
+
+        DriverLicense license = DriverLicense.withLicense(newLicense);
 
         if (!driver.getStatus().equals(Driver.Status.ACTIVE)) {
             throw new IllegalStateException("Driver is not active, cannot change license");
         }
 
-        driver.setDriverLicense(newLicense);
-
-
+        driver.setDriverLicense(license);
     }
-
 
     @Transactional
     public void changeDriverStatus(Long driverId, Driver.Status status) {
@@ -86,12 +82,12 @@ public class DriverService {
             throw new IllegalArgumentException("Driver does not exists, id = " + driverId);
         }
         if (status.equals(Driver.Status.ACTIVE)) {
-            String license = driver.getDriverLicense();
-            if (license == null || license.isEmpty() || !license.matches(DRIVER_LICENSE_REGEX)) {
-                throw new IllegalStateException("Status cannot be ACTIVE. Illegal license no = " + license);
+            try {
+                DriverLicense.withLicense(driver.getDriverLicense().asString());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalStateException("Status cannot be ACTIVE. Illegal license no = " + driver.getDriverLicense().asString());
             }
         }
-
 
         driver.setStatus(status);
     }
@@ -101,13 +97,7 @@ public class DriverService {
         if (driver == null) {
             throw new IllegalArgumentException("Driver does not exists, id = " + driverId);
         }
-        if (photo != null && !photo.isEmpty()) {
-            if (Base64.isBase64(photo)) {
-                driver.setPhoto(photo);
-            } else {
-                throw new IllegalArgumentException("Illegal photo in base64");
-            }
-        }
+        validatePhoto(photo, driver);
         driver.setPhoto(photo);
         driverRepository.save(driver);
     }
@@ -120,10 +110,8 @@ public class DriverService {
         YearMonth yearMonth = YearMonth.of(year, month);
         Instant from = yearMonth
                 .atDay(1).atStartOfDay(ZoneId.systemDefault())
-
                 .toInstant();
         Instant to = yearMonth
-
                 .atEndOfMonth().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
 
         List<Transit> transitsList = transitRepository.findAllByDriverAndDateTimeBetween(driver, from, to);
@@ -157,7 +145,16 @@ public class DriverService {
             throw new IllegalArgumentException("Driver does not exists, id = " + driverId);
         }
         driverAttributeRepository.save(new DriverAttribute(driver, attr, value));
+    }
 
+    private void validatePhoto(String photo, Driver driver) {
+        if (photo != null && !photo.isEmpty()) {
+            if (Base64.isBase64(photo)) {
+                driver.setPhoto(photo);
+            } else {
+                throw new IllegalArgumentException("Illegal photo in base64");
+            }
+        }
     }
 
 

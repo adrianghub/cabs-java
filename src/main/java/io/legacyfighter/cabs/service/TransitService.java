@@ -1,20 +1,33 @@
 package io.legacyfighter.cabs.service;
 
-import io.legacyfighter.cabs.dto.AddressDTO;
-import io.legacyfighter.cabs.dto.DriverPositionDTOV2;
-import io.legacyfighter.cabs.dto.TransitDTO;
-import io.legacyfighter.cabs.entity.*;
-import io.legacyfighter.cabs.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import static java.util.stream.Collectors.toList;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.List;
 
-import static java.util.stream.Collectors.toList;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import io.legacyfighter.cabs.dto.AddressDTO;
+import io.legacyfighter.cabs.dto.DriverPositionDTOV2;
+import io.legacyfighter.cabs.dto.TransitDTO;
+import io.legacyfighter.cabs.entity.Address;
+import io.legacyfighter.cabs.entity.CarType;
+import io.legacyfighter.cabs.entity.Client;
+import io.legacyfighter.cabs.entity.Driver;
+import io.legacyfighter.cabs.entity.Transit;
+import io.legacyfighter.cabs.repository.AddressRepository;
+import io.legacyfighter.cabs.repository.ClientRepository;
+import io.legacyfighter.cabs.repository.DriverPositionRepository;
+import io.legacyfighter.cabs.repository.DriverRepository;
+import io.legacyfighter.cabs.repository.DriverSessionRepository;
+import io.legacyfighter.cabs.repository.TransitRepository;
 
 // If this class will still be here in 2022 I will quit.
 @Service

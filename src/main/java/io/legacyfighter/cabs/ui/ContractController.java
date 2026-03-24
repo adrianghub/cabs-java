@@ -21,7 +21,7 @@ public class ContractController {
     }
 
 
-    @GetMapping("/contracts/{id}}")
+    @GetMapping("/contracts/{id}")
     public ResponseEntity<ContractDTO> find(@PathVariable Long id) {
         ContractDTO contract = contractService.findDto(id);
         return ResponseEntity.ok(contract);

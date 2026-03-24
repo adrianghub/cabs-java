@@ -35,7 +35,7 @@ public class ClaimController {
         return ResponseEntity.ok(toDto(claim));
     }
 
-    @GetMapping("/claims/{id}}")
+    @GetMapping("/claims/{id}")
     @Transactional
     public ResponseEntity<ClaimDTO> find(@PathVariable Long id) {
         Claim claim = claimService.find(id);
@@ -43,7 +43,7 @@ public class ClaimController {
         return ResponseEntity.ok(dto);
     }
 
-    @PostMapping("/claims/{id}}")
+    @PostMapping("/claims/{id}")
     ResponseEntity<ClaimDTO> tryToAutomaticallyResolve(@PathVariable Long id) {
         Claim claim = claimService.tryToResolveAutomatically(id);
         return ResponseEntity.ok(toDto(claim));
